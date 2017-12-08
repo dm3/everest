@@ -6,7 +6,8 @@
             [everest.pg.handler.store :as handler.store]
             [everest.pg.store.types :as types]
             [everest.event :as event]
-            [everest.spec :refer [ex verify!]])
+            [everest.spec :refer [ex verify!]]
+            [everest.handler.store.proto :as handler.store.proto])
   (:import [everest.pg.store.types JsonObject JsonbObject]))
 
 (defn wrap-connection
@@ -71,31 +72,31 @@
             :jsonb (types/->JsonbObject result)))
         (handler/skip)))))
 
-(defn- upsert [type id position state]
-  (verify! position "No position provided to upsert: %s/%s!" type id)
-  (handler.store/upsert!* *connection* type id position state))
+(defn- create-store [handler-type]
+  (reify handler.store.proto/IHandlerStateStore
+    (-get [_ id]
+      (let [state (handler.store/get-state* *connection* id)]
+        (verify! state
+          "Handler %s/%s isn't initialized. Please, initialize the handler before starting!"
+          handler-type id)
+        state))
+    (-set [_ id {:handler/keys [position state]}]
+      (verify! position
+        "No position provided to upsert: %s/%s!" handler-type id)
+      (handler.store/upsert!* *connection* handler-type id position state))))
 
 (defn wrap-position
   [handler {:handler.middleware/keys [handler-type handler-id] :as opts}]
-  (let [f (handler.middleware/wrap-position handler
-            (merge opts
-              {:handler.middleware/upsert-state #(upsert handler-type handler-id %1 %2)}))]
+  (let [store (create-store handler-type)
+        f (handler.middleware/wrap-position handler
+            (assoc opts :handler.middleware/state-store store))]
     (fn [e]
       (f (assoc e :handler/id handler-id :handler/type handler-type)))))
 
 (defn wrap-state
   [handler {:handler.middleware/keys [handler-type handler-id] :as opts}]
-  (let [f (handler.middleware/wrap-state handler
-            (merge opts
-              {:handler.middleware/get-state
-               (fn []
-                 (let [state (handler.store/get-state* *connection* handler-id)]
-                   (verify! state
-                            "Handler %s/%s isn't initialized. Please, initialize the handler before starting!"
-                            handler-type handler-id)
-                   state))
-               :handler.middleware/upsert-state
-               (fn [pos state]
-                 (upsert handler-type handler-id pos state))}))]
+  (let [store (create-store handler-type)
+        f (handler.middleware/wrap-state handler
+            (assoc opts :handler.middleware/state-store store))]
     (fn [e]
       (f (assoc e :handler/id handler-id :handler/type handler-type)))))
