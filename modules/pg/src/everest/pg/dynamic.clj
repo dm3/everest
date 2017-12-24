@@ -8,11 +8,11 @@
   *connection* nil)
 
 (defmacro with-unbound-connection
-  "Use this when there's a situation where you inherit the bindings of a thread
-  that has the `*connection*` bound.
+  "Use this when you inherit the bindings of a thread that has the
+  `*connection*` bound.
 
-  For example, suppose you have an event handler with the PG Connection
-  middleware that spawns `future` and calls EventStore functions inside. The
+  For example, suppose we have an event handler with PG Connection middleware
+  which spawns a `future` and calls `IEventStore` functions inside. The
   `*connection*` binding will be copied into the thread running the Future.
   However, the connection itself will probably already be closed as the event
   handler execution is done.

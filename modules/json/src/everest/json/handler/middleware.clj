@@ -6,10 +6,10 @@
   "Wraps the handler by serializing and deserializing the state under the
   specified `state-key`. Returns the serialized state.
 
-  Accepts the following options:
+  Accepts the following options namespaced under`:handler.middelware`:
 
-    * `:state-key` - `:handler/state` by default
-    * `:parser` - parser options:
+    * `state-key` - `:handler/state` by default
+    * `parser` - parser options:
       + `:parse-strict?` - the parsing mode, if true (default) - top level
         arrays will not be parsed lazily
       + `:key-fn` - the function to be applied when deserializing object

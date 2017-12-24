@@ -88,7 +88,7 @@ BEGIN
                                       events[i].data::${type}, events[i].metadata::${type});
     END LOOP;
     -- we could have other transaction append more events into other streams
-    -- so we can't just add the number of events writting during this tx.
+    -- so we can't just add the number of events written during this tx.
     UPDATE ${schema}streams AS s SET position =
         (SELECT COALESCE(MAX(position), 0) FROM ${schema}events AS e WHERE e.stream_id = streams_id)
         WHERE s.id = streams_id RETURNING position INTO next_position;

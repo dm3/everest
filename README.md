@@ -4,7 +4,7 @@ A Clojure/Postgres-based event store/library/toolkit.
 
 When you should use it?
 
-* You don't need to process hundreds of GB of events (Postgres will deal
+* You don't need to process terabytes of events (Postgres will deal
   perfectly fine with tables that fit in RAM)
 * You are OK with what Postgres offers for HA (getting simpler with each release)
 * You believe in event-based integration
@@ -13,13 +13,13 @@ When you should use it?
 Alternative Event Store implementations:
 
 * [Rill](https://github.com/rill-event-sourcing/rill) - also based on Postgres,
-  more opinionated, covers less ground
+  opinionated
 * [NEventStore](https://github.com/NEventStore) - if you prefer .NET
 
 Alternatives if Postgres doesn't cut your needs:
 
 * [Kafka](http://kafka.apache.org/)
-* [EventStore](https://geteventstore.com/)
+* [GEventStore](https://geteventstore.com/)
 
 ## TODO
 
