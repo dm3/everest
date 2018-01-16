@@ -75,15 +75,15 @@
 ;;; Release
 
 (deftask push-release []
-  (push :repo "clojars"
+  (push :repo "releases"
         :ensure-release true))
 
 (deftask push-main-release []
-  (comp (pom) (jar) (install) (b/push-release)))
+  (comp (pom) (jar) (install) (push-release)))
 
 (deftask push-module-release [m module VAL sym "module"]
   (comp (jar-module :module module)
-        (b/push-release)))
+        (push-release)))
 
 (deftask push-releases []
   (par/runcommands
