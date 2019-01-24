@@ -75,7 +75,7 @@
 ;;; Release
 
 (deftask push-release []
-  (push :repo "releases"
+  (push :repo "clojars"
         :ensure-release true
         :ensure-clean false))
 
