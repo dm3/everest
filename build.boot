@@ -76,7 +76,8 @@
 
 (deftask push-release []
   (push :repo "releases"
-        :ensure-release true))
+        :ensure-release true
+        :ensure-clean false))
 
 (deftask push-main-release []
   (comp (pom) (jar) (install) (push-release)))
