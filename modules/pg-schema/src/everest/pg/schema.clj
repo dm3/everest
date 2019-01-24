@@ -1,7 +1,8 @@
 (ns everest.pg.schema
   (:require [clojure.java.io :as io])
   (:import [javax.sql DataSource]
-           [org.flywaydb.core Flyway]))
+           [org.flywaydb.core Flyway ]
+           [org.flywaydb.core.api.configuration FluentConfiguration]))
 
 (def ^:private +allowed-types #{"bytea" "json" "jsonb"})
 
@@ -23,19 +24,18 @@
     (migrate! jdbc-data-source {})"
   ([db] (migrate! db {}))
   ([db {:keys [schema user type] :or {user "everest", type "jsonb"}}]
-   (let [^Flyway flyway (Flyway.)
+   (let [^FluentConfiguration config (Flyway/configure)
          schema-with-dot (when schema (str schema "."))]
      (if (instance? DataSource db)
-       (.setDataSource flyway db)
-       (.setDataSource flyway (:url db) (:username db) (:password db) (into-array String [])))
-     (doto flyway
-       (.setPlaceholders {"schema" schema-with-dot
-                          "user" user
-                          "type" (check-type type)
-                          "emptyTypeValue" (get +empty-type-value type)}))
+       (.dataSource config db)
+       (.dataSource config (:url db) (:username db) (:password db) (into-array String [])))
+     (.placeholders config {"schema" schema-with-dot
+                            "user" user
+                            "type" (check-type type)
+                            "emptyTypeValue" (get +empty-type-value type)})
      (when schema
-       (.setSchemas flyway (into-array String [schema])))
-     (.migrate flyway))))
+       (.schemas config (into-array String [schema])))
+     (-> config .load .migrate))))
 
 (defn drop!
   "Drops the Everest objects in the `schema`.
@@ -43,10 +43,10 @@
   *WARNING*: this will delete all the data!"
   ([db] (drop! db {}))
   ([db {:keys [schema]}]
-   (let [^Flyway flyway (Flyway.)]
+   (let [^FluentConfiguration config (Flyway/configure)]
      (if (instance? DataSource db)
-       (.setDataSource flyway db)
-       (.setDataSource flyway (:url db) (:username db) (:password db) (into-array String [])))
+       (.dataSource config db)
+       (.dataSource config (:url db) (:username db) (:password db) (into-array String [])))
      (when schema
-       (.setSchemas flyway (into-array String [schema])))
-     (.clean flyway))))
+       (.schemas config (into-array String [schema])))
+     (-> config .load .clean))))
