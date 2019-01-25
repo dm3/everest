@@ -1,5 +1,5 @@
-(def project 'everest)
-(def version "0.4.0-alpha1")
+(def project 'everest/everest)
+(def version "0.4.0-alpha4")
 
 (set-env! :resource-paths #{"src"}
           :source-paths   #{"test"}
@@ -66,31 +66,54 @@
   (set-env! :resource-paths #{}
             :source-paths #{}
             :dependencies [(latest-parent-dependency)])
-  (task-options!
-    pom {:project (symbol (str project ".module") (name module))
-         :description (format "Everest module '%s'" module)})
-  (env-module! module)
+  (let [group-id (-> (str project) (clojure.string/split #"\/") first)
+        artifact (str (-> (str project) (clojure.string/split #"\/") last) "." (name module))]
+    (task-options!
+     pom {:project (symbol group-id artifact)
+          :description (format "Everest module '%s'" module)})
+    (env-module! module)
+    (comp (pom) (jar) (install))))
+
+(deftask install-main-module []
   (comp (pom) (jar) (install)))
+
+(deftask local-install []
+  ;; need to run these tasks in serial, and can't work out how
+  ;; to do this without spawning new boot processes..
+  ;; given the order of post-wrap and comp we need this order for main to
+  ;; be installed first! (as the other modules depend upon it!)
+  (apply comp (concat (map (fn [[m _]]
+                             (with-post-wrap fileset
+                               (dosh "boot" "jar-module" "-m" (name m))))
+                           +modules)
+                      [(with-post-wrap fileset
+                         (dosh "boot" "install-main-module"))])))
 
 ;;; Release
 
 (deftask push-release []
   (push :repo "clojars"
-        :ensure-release true))
+        :ensure-release true
+        :ensure-clean false))
 
 (deftask push-main-release []
-  (comp (pom) (jar) (install) (b/push-release)))
+  (comp (pom) (jar) (install) (push-release)))
 
 (deftask push-module-release [m module VAL sym "module"]
   (comp (jar-module :module module)
-        (b/push-release)))
+        (push-release)))
 
 (deftask push-releases []
-  (par/runcommands
-    :commands (conj (->> (for [[m _] +modules]
-                           (str "push-module-release -m " m))
-                         (set))
-                    (str "push-main-release"))))
+  ;; need to run these tasks in serial, and can't work out how
+  ;; to do this without spawning new boot processes..
+  ;; given the order of post-wrap and comp we need this order for main to
+  ;; be pushed first! (as the other modules depend upon it!)
+  (apply comp (concat (map (fn [[m _]]
+                             (with-post-wrap fileset
+                               (dosh "boot" "push-module-release" "-m" (name m))))
+                           +modules)
+                      [(with-post-wrap fileset
+                         (dosh "boot" "push-main-release"))])))
 
 ;; Repl
 
